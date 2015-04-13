@@ -1,1 +1,0 @@
-The tool for create a base project.
