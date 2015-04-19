@@ -6,29 +6,19 @@ license that can be found in the LICENSE file.
 -->
 <manifest
 	xmlns:android="http://schemas.android.com/apk/res/android"
-	<!--package="com.example.sprite" -->
-		package=PACKAGE_NAME
-
+	package="com.example.sprite"
 	android:versionCode="1"
 	android:versionName="1.0">
-
-	<uses-sdk android:minSdkVersion="9" />
-	<!--<application android:label="Sprite" android:hasCode="false">-->
-	<application android:label=APP_NAME android:hasCode="false">
-
+	<uses-sdk android:minSdkVersion="9"></uses-sdk>
+	<application android:label="Sprite" android:hasCode="false">
 	<activity android:name="android.app.NativeActivity"
-		<!--android:label="Sprite"-->
-		android:label=APP_NAME
-
-	android:configChanges="orientation|keyboardHidden">
-		<!--<meta-data android:name="android.app.lib_name" android:value="sprite" />-->
-
-	<meta-data android:name="android.app.lib_name" android:value=APP_NAME />
-		<intent-filter>
+		android:label="Sprite"
+		android:configChanges="orientation|keyboardHidden">
+		<meta-data android:name="android.app.lib_name" android:value="sprite" />
+			<intent-filter>
 			<action android:name="android.intent.action.MAIN" />
 			<category android:name="android.intent.category.LAUNCHER" />
 		</intent-filter>
 	</activity>
 	</application>
 </manifest> 
-

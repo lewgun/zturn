@@ -13,5 +13,4 @@ echo # installing bin/nativeactivity-debug.apk
 adb install -r bin/nativeactivity-debug.apk >nul
 
 echo # starting android.app.NativeActivity
-#adb shell am start -a android.intent.action.MAIN -n com.example.sprite/android.app.NativeActivity >nul
-adb shell am start -a android.intent.action.MAIN -n PACKAGE_NAME/android.app.NativeActivity >nul
+adb shell am start -a android.intent.action.MAIN -n PACKAGE_PLACEHOLDER/android.app.NativeActivity >nul

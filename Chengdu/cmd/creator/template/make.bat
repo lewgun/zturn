@@ -16,7 +16,6 @@ set GOARCH=arm
 set GOARM=7
 
 :: go build -ldflags="-shared" -o jni/armeabi/libsprite.so .
-go build -ldflags="-shared" -o jni/armeabi/libTO_REPLACE.so .
 if errorlevel 1 goto error-go-build
 
 if defined NDK_ROOT goto ndk-build
