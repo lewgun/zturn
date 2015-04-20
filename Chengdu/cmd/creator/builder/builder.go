@@ -3,9 +3,9 @@ package builder
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
 	// "bytes"
 	"errors"
 
@@ -32,11 +32,11 @@ const (
 	elementManifest    = "manifest"
 	elementApplication = "application"
 	attrPackage        = "package"
-	attrLabel   = "label"
+	attrLabel          = "label"
 	elementActivity    = "activity"
 	elementMetaData    = "meta-data"
-	attrValue   = "value"
-	namespace = "android"
+	attrValue          = "value"
+	namespace          = "android"
 )
 
 //Builder build a skeleton project.
@@ -148,46 +148,50 @@ func replace(path string, old, new []byte, n int) error {
 
 }
 
-func (b *Builder) updateElement(e *xml.StartElement) *xml.StartElement{
+func (b *Builder) updateElement(t xml.Token) {
 
-	println(e.Name.Local)
+	e := t.(xml.StartElement)
 	switch e.Name.Local {
 
 	case elementManifest:
-		for _, v := range e.Attr {
-			println("M: ", v.Name.Local)
-			if v.Name.Local == attrPackage {
-				v.Value = b.conf.Pkg
+		for i := range e.Attr {
+			if e.Attr[i].Name.Local == attrPackage {
+				e.Attr[i].Value = b.conf.Pkg
 				break
 			}
+
 		}
 
 	case elementApplication:
-		for _, v := range e.Attr {
-			if v.Name.Local == attrLabel && v.Name.Space == namespace {
-				v.Value = b.conf.Project
+		for i := range e.Attr {
+			if e.Attr[i].Name.Local == attrLabel {
+				e.Attr[i].Value = b.conf.Project
 				break
 			}
+
 		}
 	case elementActivity:
-		for _, v := range e.Attr {
-			if v.Name.Local == attrLabel && v.Name.Space == namespace {
-				v.Value = b.conf.Project
+		for i := range e.Attr {
+			if e.Attr[i].Name.Local == attrLabel {
+				e.Attr[i].Value = b.conf.Project
 				break
 			}
+
 		}
 	case elementMetaData:
-		for _, v := range e.Attr {
-			if v.Name.Local == attrLabel  && v.Name.Space == namespace{
-				v.Value = b.conf.Project
+		for i := range e.Attr {
+			if e.Attr[i].Name.Local == attrValue {
+				e.Attr[i].Value = b.conf.Project
 				break
 			}
+
 		}
 	default:
 		//placeholder
 	}
 
-    return e
+	//t = e
+
 }
 
 func (b *Builder) AndroidManifestXML(path string) error {
@@ -203,6 +207,7 @@ func (b *Builder) AndroidManifestXML(path string) error {
 
 	buf := &bytes.Buffer{}
 	e := xml.NewEncoder(buf)
+	e.Indent(" ", "  ")
 
 	for {
 		token, err := d.Token()
@@ -212,18 +217,28 @@ func (b *Builder) AndroidManifestXML(path string) error {
 
 		switch token.(type) {
 		case xml.CharData: //skip the escape text
+			//t := token.(xml.CharData)
+			//fmt.Println(string(t))
 			continue
 
 		case xml.StartElement:
-			t := token.(xml.StartElement)
-			token = b.updateElement(&t)
+			//	t := token.(xml.StartElement)
+			//	fmt.Println("START: ", t.Name.Local )
+			//	token = *(b.updateElement(&t))
+			b.updateElement(token)
+		case xml.EndElement:
+
+			//	t := token.(xml.EndElement)
+			//	fmt.Println("END: ", t.Name.Local )
 
 		default:
 			//placeholder
 
 		} // end of switch
 
+		//fmt.Println("T: ", token )
 		if err = e.EncodeToken(token); err != nil {
+			fmt.Println("ERR: ", err, "TOKEN: ", token)
 			return err
 		}
 
@@ -234,12 +249,10 @@ func (b *Builder) AndroidManifestXML(path string) error {
 	}
 
 	e.Flush()
-	println(buf.Bytes())
 
-	return ioutil.WriteFile(path+".temp", buf.Bytes(), os.ModePerm)
+	return ioutil.WriteFile(path, buf.Bytes(), os.ModePerm)
 
 }
-
 
 func (b *Builder) AndroidMK(path string) error {
 	return replace(path, []byte(modulePlaceholder), []byte(b.conf.Project), -1)
@@ -281,7 +294,7 @@ func (b *Builder) configAll() error {
 	b.makeBat(filepath.Join(path, "make.bat"))
 
 	//AndroidManifest.xml
-	err := b.AndroidManifestXML(filepath.Join(path, "AndroidManifest2.xml"))
+	err := b.AndroidManifestXML(filepath.Join(path, "AndroidManifest.xml"))
 	if err != nil {
 		fmt.Println(err)
 	}
