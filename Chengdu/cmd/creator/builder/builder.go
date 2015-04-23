@@ -279,19 +279,19 @@ func (b *Builder) configAll() error {
 	path := filepath.Join(b.conf.Loc, b.conf.Project)
 
 	//Android.mk
-	b.AndroidMK(filepath.Join(path, jniDir, "Android.mk"))
+	//b.AndroidMK(filepath.Join(path, jniDir, "Android.mk"))
 
 	//all.bash
-	b.allBash(filepath.Join(path, "all.bash"))
+	//b.allBash(filepath.Join(path, "all.bash"))
 
 	//all.bat
-	b.allBat(filepath.Join(path, "all.bat"))
+	//b.allBat(filepath.Join(path, "all.bat"))
 
 	//make.bash
-	b.makeBash(filepath.Join(path, "make.bash"))
+	//b.makeBash(filepath.Join(path, "make.bash"))
 
 	//make.bat
-	b.makeBat(filepath.Join(path, "make.bat"))
+	//b.makeBat(filepath.Join(path, "make.bat"))
 
 	//AndroidManifest.xml
 	err := b.AndroidManifestXML(filepath.Join(path, "AndroidManifest.xml"))
