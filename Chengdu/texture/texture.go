@@ -128,11 +128,75 @@ These functions require GL_TEXTURE_2D and both GL_VERTEX_ARRAY and GL_TEXTURE_CO
 */
 
 //DrawAtPoint draws a texture at a given point */
-func (t *Texture) DrawAtPoint(p geom.Point) {
+func (t *Texture) DrawAtPoint(point geom.Point) {
+	coordinates := []float32{
+		0.0, t.MaxT,
+		t.MaxS, t.MaxT,
+		0.0, 0.0,
+		t.MaxS, 0.0}
+
+	width := float32(t.PixelsWide * t.MaxS)
+	height := t.PixelsHigh * t.MaxT
+
+	vertices := float32{
+		point.X, point.y,
+		width + point.x, point.y,
+		point.x, height + point.y,
+		width + point.x, height + point.y}
+
+	//	ccGLEnableVertexAttribs( VertexAttribFlag_Position | VertexAttribFlag_TexCoords )
+	//	m_pShaderProgram->use()
+	//	m_pShaderProgram->setUniformsForBuiltins()
+	//
+	//	ccGLBindTexture2D( m_uName )
+	//
+	//
+	//	#ifdef EMSCRIPTEN
+	//	setGLBufferData(vertices, 8 * sizeof(GLfloat), 0)
+	//	glVertexAttribPointer(VertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, 0, 0)
+	//
+	//	setGLBufferData(coordinates, 8 * sizeof(GLfloat), 1)
+	//	glVertexAttribPointer(VertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, 0, 0)
+	//	#else
+	//glVertexAttribPointer(VertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, 0, vertices)
+	//glVertexAttribPointer(VertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, 0, coordinates)
+	//#endif // EMSCRIPTEN
+	//
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
+
 }
 
 //DrawInRect draws a texture inside a rect.
-func (t *Texture) DrawInRect(rect geom.Rectangle) {
+func (t *Texture) DrawInRect(rect geom.Rect) {
+
+	coordinates := []float32{
+		0.0, t.MaxT,
+		t.MaxS, t.MaxT,
+		0.0, 0.0,
+		t.MaxS, 0.0}
+
+	//	GLfloat    vertices[] = {    rect.origin.x,        rect.origin.y,                            /*0.0f,*/
+	//	rect.origin.x + rect.size.width,        rect.origin.y,                            /*0.0f,*/
+	//	rect.origin.x,                            rect.origin.y + rect.size.height,        /*0.0f,*/
+	//	rect.origin.x + rect.size.width,        rect.origin.y + rect.size.height,        /*0.0f*/ }
+
+	//	ccGLEnableVertexAttribs( VertexAttribFlag_Position | VertexAttribFlag_TexCoords )
+	//	m_pShaderProgram->use()
+	//	m_pShaderProgram->setUniformsForBuiltins()
+	//
+	//	ccGLBindTexture2D( m_uName )
+	//
+	//	#ifdef EMSCRIPTEN
+	//	setGLBufferData(vertices, 8 * sizeof(GLfloat), 0)
+	//	glVertexAttribPointer(VertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, 0, 0)
+	//
+	//	setGLBufferData(coordinates, 8 * sizeof(GLfloat), 1)
+	//	glVertexAttribPointer(VertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, 0, 0)
+	//	#else
+	//glVertexAttribPointer(VertexAttrib_Position, 2, GL_FLOAT, GL_FALSE, 0, vertices)
+	//glVertexAttribPointer(VertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, 0, coordinates)
+	//#endif // EMSCRIPTEN
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
 
 }
 
@@ -143,25 +207,24 @@ Note that RGBA type textures will have their alpha premultiplied - use the blend
 /** Initializes a texture from a glutil.Image object */
 func (t *Texture) initWithImage(img *glutil.Image) bool {
 	if img == nil {
-		//CCLOG("cocos2d: CCTexture2D. Can't create Texture. UIImage is nil");
-		return false;
+		//CCLOG("cocos2d: CCTexture2D. Can't create Texture. UIImage is nil")
+		return false
 	}
 
+	//imageWidth := img->getWidth()
+	//imageHeight := img->getHeight()
 
-	//imageWidth := img->getWidth();
-	//imageHeight := img->getHeight();
+	//	CCConfiguration *conf = CCConfiguration::sharedConfiguration()
+	//
+	// maxTextureSize := conf.getMaxTextureSize()
+	//if imageWidth > maxTextureSize || imageHeight > maxTextureSize {
+	//
+	////CCLOG("cocos2d: WARNING: Image (%u x %u) is bigger than the supported %u x %u", imageWidth, imageHeight, maxTextureSize, maxTextureSize)
+	//return false
+	//}
 
-	CCConfiguration *conf = CCConfiguration::sharedConfiguration();
-
- maxTextureSize := conf.getMaxTextureSize()
-if imageWidth > maxTextureSize || imageHeight > maxTextureSize {
-
-//CCLOG("cocos2d: WARNING: Image (%u x %u) is bigger than the supported %u x %u", imageWidth, imageHeight, maxTextureSize, maxTextureSize);
-return false
-}
-
-// always load premultiplied images
-return initPremultipliedATextureWithImage(uiImage, imageWidth, imageHeight);
+	// always load premultiplied images
+	return initPremultipliedATextureWithImage(uiImage, imageWidth, imageHeight)
 
 }
 
@@ -255,38 +318,173 @@ func (t *Texture) initWithData(
 /** Initializes a texture from a PVR file */
 func (t *Texture) initWithPVRFile(file string) bool {
 
+	pvr := NewPVR(file)
+	bRet := pvr.initWithContentsOfFile(file)
+
+	if bRet {
+		//		pvr->setRetainName(true) // don't dealloc texture on release
+		//
+		//		t.Name = pvr.Name
+		//		t.MaxS = 1.0
+		//		t.MaxT = 1.0
+		//		t.PixelsWide = pvr->getWidth()
+		//		t.PixelsHigh = pvr->getHeight()
+		//		t.ContentSize = CCSizeMake((float)m_uPixelsWide, (float)m_uPixelsHigh)
+		//	t.HasPremultipliedAlpha = PVRHaveAlphaPremultiplied_
+		//	t.PixelFormat = pvr->getFormat()
+		//	t.HasMipmaps = pvr->getNumberOfMipmaps() > 1
+
+	} else {
+		//CCLOG("cocos2d: Couldn't load PVR image %s", file)
+	}
+
+	return bRet
+
 }
 
 /** Initializes a texture from a ETC file */
 func (t *Texture) initWithETCFile(file string) bool {
+
+	etc := NewETC()
+	bRet := etc.init(file)
+
+	if bRet {
+		//t.Name = etc->getName()
+		//t.MaxS = 1.0
+		//t.MaxT = 1.0
+		//t.PixelsWide = etc->getWidth()
+		//t.PixelsHigh = etc->getHeight()
+		//t.ContentSize = CCSizeMake((float)m_uPixelsWide, (float)m_uPixelsHigh)
+		//t.HasPremultipliedAlpha = true
+
+	} else {
+		//CCLOG("cocos2d: Couldn't load ETC image %s", file)
+	}
+
+	return bRet
 }
 
 //SetTexParameters sets the min filter, mag filter, wrap s and wrap t texture parameters.
 //If the texture size is NPOT (non power of 2), then in can only use GL_CLAMP_TO_EDGE in GL_TEXTURE_WRAP_{S,T}.
 func (t *Texture) SetTexParameters(texParams *TexParams) {
+	//CCAssert( (m_uPixelsWide == ccNextPOT(m_uPixelsWide) || texParams->wrapS == GL_CLAMP_TO_EDGE) &&
+	//(m_uPixelsHigh == ccNextPOT(m_uPixelsHigh) || texParams->wrapT == GL_CLAMP_TO_EDGE),
+	//"GL_CLAMP_TO_EDGE should be used in NPOT dimensions")
+	//
+	//ccGLBindTexture2D( m_uName )
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texParams->minFilter )
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texParams->magFilter )
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texParams->wrapS )
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texParams->wrapT )
+	//
+	//#if CC_ENABLE_CACHE_TEXTURE_DATA
+	//VolatileTexture::setTexParameters(this, texParams)
+	//#endif
 }
 
 // SetAntiAliasTexParameters sets antialias texture parameters:
 // - GL_TEXTURE_MIN_FILTER = GL_LINEAR
 // - GL_TEXTURE_MAG_FILTER = GL_LINEAR
 func (t *Texture) SetAntiAliasTexParameters() {
+	//ccGLBindTexture2D( m_uName )
+	//
+	//if( ! m_bHasMipmaps )
+	//{
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST )
+	//}
+	//else
+	//{
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST )
+	//}
+	//
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST )
+	//#if CC_ENABLE_CACHE_TEXTURE_DATA
+	//ccTexParams texParams = {m_bHasMipmaps?GL_NEAREST_MIPMAP_NEAREST:GL_NEAREST,GL_NEAREST,GL_NONE,GL_NONE}
+	//VolatileTexture::setTexParameters(this, &texParams)
+	//#endif
 }
 
 //SetAliasTexParameters sets alias texture parameters:
 //- GL_TEXTURE_MIN_FILTER = GL_NEAREST
 //- GL_TEXTURE_MAG_FILTER = GL_NEAREST
-func (t *Texture) SetAliasTexParameters()
+func (t *Texture) SetAliasTexParameters() {
+	//ccGLBindTexture2D( m_uName )
+	//
+	//if( ! m_bHasMipmaps )
+	//{
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR )
+	//}
+	//else
+	//{
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST )
+	//}
+	//
+	//glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR )
+	//#if CC_ENABLE_CACHE_TEXTURE_DATA
+	//ccTexParams texParams = {m_bHasMipmaps?GL_LINEAR_MIPMAP_NEAREST:GL_LINEAR,GL_LINEAR,GL_NONE,GL_NONE}
+	//VolatileTexture::setTexParameters(this, &texParams)
+	//#endif
+}
 
 //GenerateMipmap Generates mipmap images for the texture.
 //It only works if the texture size is POT (power of 2).
 func (t *Texture) GenerateMipmap() {
+
+	//CCAssert( m_uPixelsWide == ccNextPOT(m_uPixelsWide) && m_uPixelsHigh == ccNextPOT(m_uPixelsHigh), "Mipmap texture only works in POT textures")
+	//ccGLBindTexture2D( m_uName )
+	//glGenerateMipmap(GL_TEXTURE_2D)
+	t.HasMipmaps = true
 }
 
 //BitsPerPixelForFormat returns the bits-per-pixel of the in-memory OpenGL texture
-func (t *Texture) BitsPerPixelForFormat() uint {}
+func (t *Texture) BitsPerPixelForCurrentFormat() uint {
+	return t.BitsPerPixelForFormat(t.PixelFormat)
+}
 
 //BitsPerPixelForFormat Helper functions that returns bits per pixels for a given format.
-func (t *Texture) BitsPerPixelForFormat(format Texture2DPixelFormat) uint {}
+func (t *Texture) BitsPerPixelForFormat(format Texture2DPixelFormat) uint {
+	var ret uint
+
+	switch format {
+	case Texture2DPixelFormat_RGBA8888:
+		ret = 32
+
+	case Texture2DPixelFormat_RGB888:
+		// It is 32 and not 24, since its internal representation uses 32 bits.
+		ret = 32
+
+	case Texture2DPixelFormat_RGB565:
+		ret = 16
+
+	case Texture2DPixelFormat_RGBA4444:
+		ret = 16
+
+	case Texture2DPixelFormat_RGB5A1:
+		ret = 16
+
+	case Texture2DPixelFormat_AI88:
+		ret = 16
+
+	case Texture2DPixelFormat_A8:
+		ret = 8
+
+	case Texture2DPixelFormat_I8:
+		ret = 8
+
+	case Texture2DPixelFormat_PVRTC4:
+		ret = 4
+
+	case Texture2DPixelFormat_PVRTC2:
+		ret = 2
+
+	default:
+		ret = -1
+		//CCAssert(false , "unrecognized pixel format")
+		//CCLOG("bitsPerPixelForFormat: %ld, cannot give useful result", (long)format)
+
+	}
+	return ret
+}
 
 /** content size */
 func (t *Texture) ContentSizeInPixels() geom.Size {
@@ -298,146 +496,164 @@ func (t *Texture) initPremultipliedATextureWithImage(
 	pixelsWide uint,
 	pixelsHigh uint) bool {
 
-            tempData := image->getData();
+	//          tempData := image->getData()
 
-			var (
-inPixel32 *uint32
-inPixel8 *uint8
-outPixel16 *uint16
-pixelFormat CCTexture2DPixelFormat
-			)
+	var (
+		inPixel32   *uint32
+		inPixel8    *uint8
+		outPixel16  *uint16
+		pixelFormat CCTexture2DPixelFormat
+	)
 
-bool                      hasAlpha := image->hasAlpha();
-CCSize                    imageSize := CCSizeMake((float)(image->getWidth()), (float)(image->getHeight()));
-CCTexture2DPixelFormat    pixelFormat;
-size_t                    bpp = image->getBitsPerComponent();
+	var hasAlpha bool
+	// hasAlpha := image->hasAlpha()
+	//   imageSize := CCSizeMake((float)(image->getWidth()), (float)(image->getHeight()))
 
-// compute pixel format
-if (hasAlpha)
-{
-pixelFormat = g_defaultAlphaPixelFormat;
-}
-else
-{
-if (bpp >= 8)
-{
-pixelFormat = kCCTexture2DPixelFormat_RGB888;
-}
-else
-{
-pixelFormat = kCCTexture2DPixelFormat_RGB565;
-}
+	//   bpp := image->getBitsPerComponent()
 
-}
+	// compute pixel format
+	if hasAlpha {
+		pixelFormat = g_defaultAlphaPixelFormat
 
-// Repack the pixel data into the right format
-unsigned int length = width * height;
+	} else {
+		if bpp >= 8 {
+			pixelFormat = Texture2DPixelFormat_RGB888
+		} else {
+			pixelFormat = Texture2DPixelFormat_RGB565
+		}
 
-if (pixelFormat == kCCTexture2DPixelFormat_RGB565)
-{
-if (hasAlpha)
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRGGGGGGBBBBB"
+	}
 
-tempData = new unsigned char[width * height * 2];
-outPixel16 = (unsigned short*)tempData;
-inPixel32 = (unsigned int*)image->getData();
+	// Repack the pixel data into the right format
 
-for(unsigned int i = 0; i < length; ++i, ++inPixel32)
-{
-*outPixel16++ =
-((((*inPixel32 >>  0) & 0xFF) >> 3) << 11) |  // R
-((((*inPixel32 >>  8) & 0xFF) >> 2) << 5)  |  // G
-((((*inPixel32 >> 16) & 0xFF) >> 3) << 0);    // B
-}
-}
-else
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBB" to "RRRRRGGGGGGBBBBB"
+	length := width * height
 
-tempData = new unsigned char[width * height * 2];
-outPixel16 = (unsigned short*)tempData;
-inPixel8 = (unsigned char*)image->getData();
+	if pixelFormat == Texture2DPixelFormat_RGB565 {
+		if hasAlpha {
+			// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRGGGGGGBBBBB"
 
-for(unsigned int i = 0; i < length; ++i)
-{
-*outPixel16++ =
-(((*inPixel8++ & 0xFF) >> 3) << 11) |  // R
-(((*inPixel8++ & 0xFF) >> 2) << 5)  |  // G
-(((*inPixel8++ & 0xFF) >> 3) << 0);    // B
-}
-}
-}
-else if (pixelFormat == kCCTexture2DPixelFormat_RGBA4444)
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRGGGGBBBBAAAA"
+			tempData := make([]byte, width*height*2)
+			//outPixel16 = (*uint16)tempData
+			//inPixel32 = (*uint32)image->getData()
 
-inPixel32 = (unsigned int*)image->getData();
-tempData = new unsigned char[width * height * 2];
-outPixel16 = (unsigned short*)tempData;
+			var outPixel16 *uint16
+			var inPixel32 *uint32
 
-for(unsigned int i = 0; i < length; ++i, ++inPixel32)
-{
-*outPixel16++ =
-((((*inPixel32 >> 0) & 0xFF) >> 4) << 12) | // R
-((((*inPixel32 >> 8) & 0xFF) >> 4) <<  8) | // G
-((((*inPixel32 >> 16) & 0xFF) >> 4) << 4) | // B
-((((*inPixel32 >> 24) & 0xFF) >> 4) << 0);  // A
-}
-}
-else if (pixelFormat == kCCTexture2DPixelFormat_RGB5A1)
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRGGGGGBBBBBA"
-inPixel32 = (unsigned int*)image->getData();
-tempData = new unsigned char[width * height * 2];
-outPixel16 = (unsigned short*)tempData;
+			for i := 0; i < length; i++ {
+				*outPixel16 =
+					((((*inPixel32 >> 0) & 0xFF) >> 3) << 11) | // R
+						((((*inPixel32 >> 8) & 0xFF) >> 2) << 5) | // G
+						((((*inPixel32 >> 16) & 0xFF) >> 3) << 0) // B
+				inPixel32++
+				outPixel16++
+			}
+		} else {
+			// Convert "RRRRRRRRRGGGGGGGGBBBBBBBB" to "RRRRRGGGGGGBBBBB"
 
-for(unsigned int i = 0; i < length; ++i, ++inPixel32)
-{
-*outPixel16++ =
-((((*inPixel32 >> 0) & 0xFF) >> 3) << 11) | // R
-((((*inPixel32 >> 8) & 0xFF) >> 3) <<  6) | // G
-((((*inPixel32 >> 16) & 0xFF) >> 3) << 1) | // B
-((((*inPixel32 >> 24) & 0xFF) >> 7) << 0);  // A
-}
-}
-else if (pixelFormat == kCCTexture2DPixelFormat_A8)
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "AAAAAAAA"
-inPixel32 = (unsigned int*)image->getData();
-tempData = new unsigned char[width * height];
-unsigned char *outPixel8 = tempData;
+			//tempData = make([]byte, width * height * 2)
+			//outPixel16 = (*uint16)tempData
+			//inPixel8 = (unsigned char*)image->getData()
 
-for(unsigned int i = 0; i < length; ++i, ++inPixel32)
-{
-*outPixel8++ = (*inPixel32 >> 24) & 0xFF;  // A
-}
-}
+			tempData := make([]byte, width*height*2)
 
-if (hasAlpha && pixelFormat == kCCTexture2DPixelFormat_RGB888)
-{
-// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRRRRGGGGGGGGBBBBBBBB"
-inPixel32 = (unsigned int*)image->getData();
-tempData = new unsigned char[width * height * 3];
-unsigned char *outPixel8 = tempData;
+			var outPixel16 *uint16
+			var inPixel8 *byte
 
-for(unsigned int i = 0; i < length; ++i, ++inPixel32)
-{
-*outPixel8++ = (*inPixel32 >> 0) & 0xFF; // R
-*outPixel8++ = (*inPixel32 >> 8) & 0xFF; // G
-*outPixel8++ = (*inPixel32 >> 16) & 0xFF; // B
-}
-}
+			for i := 0; i < length; i++ {
+				//*outPixel16 =
+				//(((*inPixel8++ & 0xFF) >> 3) << 11) |  // R
+				//(((*inPixel8++ & 0xFF) >> 2) << 5)  |  // G
+				//(((*inPixel8++ & 0xFF) >> 3) << 0)    // B
+				outPixel16++
+			}
+		}
+	} else if pixelFormat == Texture2DPixelFormat_RGBA4444 {
+		// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRGGGGBBBBAAAA"
 
-initWithData(tempData, pixelFormat, width, height, imageSize);
+		//inPixel32 = (uint32*)image->getData()
+		//tempData = make([]byte, width * height * 2)
+		//outPixel16 = (uint16*)tempData
 
-if (tempData != image->getData())
-{
-delete [] tempData;
-}
+		tempData := make([]byte, width*height*2)
 
-m_bHasPremultipliedAlpha = image->isPremultipliedAlpha();
-return true;
+		var outPixel16 *uint16
+		var inPixel32 *byte
+
+		for i := 0; i < length; i++ {
+			*outPixel16 =
+				((((*inPixel32 >> 0) & 0xFF) >> 4) << 12) | // R
+					((((*inPixel32 >> 8) & 0xFF) >> 4) << 8) | // G
+					((((*inPixel32 >> 16) & 0xFF) >> 4) << 4) | // B
+					((((*inPixel32 >> 24) & 0xFF) >> 4) << 0) // A
+			inPixel32++
+			outPixel16++
+		}
+	} else if pixelFormat == Texture2DPixelFormat_RGB5A1 {
+		// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRGGGGGBBBBBA"
+		//inPixel32 = ( *uint32)image->getData()
+		//tempData = make([]byte, width * height * 2)
+		//outPixel16 = (*uint16)tempData
+
+		tempData := make([]byte, width*height*2)
+		var outPixel16 *uint16
+		var inPixel32 *byte
+
+		for i := 0; i < length; i++ {
+			*outPixel16 =
+				((((*inPixel32 >> 0) & 0xFF) >> 3) << 11) | // R
+					((((*inPixel32 >> 8) & 0xFF) >> 3) << 6) | // G
+					((((*inPixel32 >> 16) & 0xFF) >> 3) << 1) | // B
+					((((*inPixel32 >> 24) & 0xFF) >> 7) << 0) // A
+			outPixel16++
+			inPixel32++
+		}
+	} else if pixelFormat == Texture2DPixelFormat_A8 {
+		// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "AAAAAAAA"
+		//inPixel32 = (uint32*)image->getData()
+		//tempData = make([]byte, width * height)
+		//outPixel8 := (*byte)tempData
+
+		tempData := make([]byte, width*height)
+		var outPixel8 *uint16
+		var inPixel32 *byte
+
+		for i := 0; i < length; i++ {
+			*outPixel8 = (*inPixel32 >> 24) & 0xFF // A
+			inPixel32++
+			outPixel8++
+		}
+	}
+
+	if hasAlpha && pixelFormat == Texture2DPixelFormat_RGB888 {
+		// Convert "RRRRRRRRRGGGGGGGGBBBBBBBBAAAAAAAA" to "RRRRRRRRGGGGGGGGBBBBBBBB"
+		//inPixel32 = (*uint32)image->getData()
+		//tempData = make([]byte, width * height * 3)
+		//outPixel8 := (*byte)tempData
+
+		tempData := make([]byte, width*height)
+		var outPixel8 *uint8
+		var inPixel32 *uint32
+
+		for i := 0; i < length; i++ {
+			*outPixel8 = (*inPixel32 >> 0) & 0xFF // R
+			outPixel8++
+			*outPixel8 = (*inPixel32 >> 8) & 0xFF // G
+			outPixel8++
+			*outPixel8 = (*inPixel32 >> 16) & 0xFF // B
+			outPixel8++
+			inPixel32++
+		}
+	}
+
+	t.initWithData(tempData, pixelFormat, width, height, imageSize)
+
+	//if (tempData != image->getData())
+	//{
+	//delete [] tempData
+	//}
+
+	//t.HasPremultipliedAlpha = image->isPremultipliedAlpha()
+	return true
 
 }
 
