@@ -1,15 +1,19 @@
 package texture
 
 import (
-	"github.com/lewgun/mobile/gl/glutil"
+	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
-	"fmt"
+
+	"bytes"
+	"github.com/lewgun/mobile/gl/glutil"
+	"sync"
+	"time"
 )
 
-
-
 type ImageFormat uint8
+
 const (
 	ImageFormatUnknown ImageFormat = iota
 	ImageFormatJPG
@@ -18,72 +22,68 @@ const (
 	ImageFormatWebP
 )
 
+var SharedCache *cache
 
-func ImageFormat( filename string ) ImageFormat {
-
-
-	switch strings.ToLower(filepath.Ext(filename)) {
-case "jpg", "jpeg":
-return ImageFormatJPG
-
-case "png":
-return ImageFormatPNG
-
-case "tiff":
-return ImageFormatTIFF
-
-case "webp"
-return ImageFormatWebP
-
-default:
-
-}
-return ImageFormatUnknown
-
-}
-
-
-/*
-func loadImageData( fileName string ) {
-
-	if ImageFormat(fileName) == ImageFormatUnknown {
-		return
+func init() {
+	SharedCache = &cache{
+		textures:    make(map[string]*Texture),
+		pendingTask: make(chan func(), 256),
 	}
 
-	img := glutil.Image{}
-	//if (pImage && !pImage->initWithImageFileThreadSafe(filename, imageType))
-
+	go SharedCache.run()
 }
 
-*/
+func ImageFormat(filename string) ImageFormat {
 
-type Cache interface {
-	String() string
-	SnapshotTextures() map[string] *Texture
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case "jpg", "jpeg":
+		return ImageFormatJPG
+
+	case "png":
+		return ImageFormatPNG
+
+	case "tiff":
+		return ImageFormatTIFF
+
+	case "webp":
+		return ImageFormatWebP
+
+	default:
+
+	}
+	return ImageFormatUnknown
+
 }
-
 
 type cache struct {
+	//all textures key: abspath value: *Texture.
 	textures map[string]*Texture
-}
 
+	//pending loading task.
+	pendingTask chan func()
 
-
-func (c *cache) addImageAsyncCallBack(dt float32) {
-
+	locks sync.RWMutex
 }
 
 func (c *cache) String() string {
-
 	return fmt.Sprintf("<CCTextureCache | Number of textures = %u>", len(c.textures))
+}
+
+//Exit exit the cache.
+func (c *cache) Exit() {
+	close(c.pendingTask)
 
 }
 
-func (c *cache) SnapshotTextures()  map[string] *Texture {
+//SnapshotTextures get a snapshot.
+func (c *cache) SnapshotTextures() map[string]*Texture {
 
 	ret := make(map[string]*Texture)
 
-	for k,v := range c.textures {
+	c.locks.RLock()
+	defer c.locks.RUnlock()
+
+	for k, v := range c.textures {
 		ret[k] = v
 	}
 
@@ -91,56 +91,104 @@ func (c *cache) SnapshotTextures()  map[string] *Texture {
 
 }
 
-var g_sharedCache Cache
+/*
+AddImage returns a Texture2D object given an file image
+ If the file image was not previously loaded, it will create a new CCTexture2D
+  object and it will return it. It will use the filename as a key.
+ Otherwise it will return a reference of a previously loaded image.
+ Supported image extensions: .png, .bmp, .tiff, .jpeg, .pvr, .gif
+*/
+func (c *cache) AddImage(file string) *Texture {
 
-func SharedCache() Cache {
+	chanTex := make(*Texture, 1)
+	c.AddImageAsync(file, func(tex *Texture) {
+		chanTex <- tex
+	})
 
-	if g_sharedCache == nil {
-		g_sharedCache = &cache{
-			textures: make(map[string]*Texture),
+	return <-chanTex
+
+}
+
+/*
+  AddImageAsync returns a Texture2D object given a file image
+     If the file image was not previously loaded, it will create a new CCTexture2D object and it will return it.
+     Otherwise it will load a texture in a new thread, and when the image is loaded, the callback will be called with the Texture2D as a parameter.
+    // The callback will be called from the main thread, so it is safe to create any cocos2d object from the callback.
+     Supported image extensions: .png, .jpg
+*/
+
+func (c *cache) AddImageAsync(file string, cb func(*Texture)) {
+
+	//pathKey = CCFileUtils::sharedFileUtils()->fullPathForFilename(file);
+	absPath := ""
+
+	tex := c.TextureForKey(absPath)
+	if tex != nil {
+
+		if cb != nil {
+			cb(tex)
+		}
+
+		return
+	}
+
+	c.pendingTask <- func() {
+		tex := c.loadImage(file)
+		if cb != nil {
+			cb(tex)
 		}
 
 	}
-	return g_sharedCache
 
 }
 
-func PurgeSharedCache() {
+func (c *cache) addNormalImage(file string) *Texture {
 
 }
+func (c *cache) loadImage(file string) *Texture {
+	absPath := file
 
-/** Returns a Texture2D object given an file image
-* If the file image was not previously loaded, it will create a new CCTexture2D
-*  object and it will return it. It will use the filename as a key.
-* Otherwise it will return a reference of a previously loaded image.
-* Supported image extensions: .png, .bmp, .tiff, .jpeg, .pvr, .gif
- */
-func (c *cache) addImage(fileImage string) Texture {
+	tex := c.TextureForKey(absPath)
+	if tex != nil {
+		return tex
+	}
 
-}
+	ext := strings.ToLower(filepath.Ext(absPath))
 
-// /* Returns a Texture2D object given a file image
-//    * If the file image was not previously loaded, it will create a new CCTexture2D object and it will return it.
-//    * Otherwise it will load a texture in a new thread, and when the image is loaded, the callback will be called with the Texture2D as a parameter.
-//    * The callback will be called from the main thread, so it is safe to create any cocos2d object from the callback.
-//    * Supported image extensions: .png, .jpg
-//    * @since v0.8
-//    * @lua NA
-//    */
-//
-//void addImageAsync(const char *path, CCObject *target, SEL_CallFuncO selector);
+	switch ext {
+	case "pvr":
+		tex = c.addPVRImage(absPath)
+	case "pkm":
+		tex = c.addETCImage(absPath)
 
-/* Returns a Texture2D object given an CGImageRef image
-* If the image was not previously loaded, it will create a new CCTexture2D object and it will return it.
-* Otherwise it will return a reference of a previously loaded image
-* The "key" parameter will be used as the "key" for the cache.
-* If "key" is nil, then a new texture will be created each time.
- */
-func (c *cache) addUIImage(image *glutil.Image, key string) Texture {
+	default:
+		tex = c.addNormalImage(file)
+	}
+
+	if tex != nil {
+		c.locks.Lock()
+		c.textures[absPath] = tex
+		c.locks.Unlock()
+	}
+
+	return tex
 
 }
 
 func (c *cache) TextureForKey(key string) *Texture {
+	if key == "" {
+		return nil
+	}
+
+	c.locks.RLock()
+	tex, ok := c.textures[key]
+	c.locks.RUnlock()
+
+	if !ok {
+		return nil
+	}
+
+	return tex
 
 }
 
@@ -150,18 +198,41 @@ func (c *cache) TextureForKey(key string) *Texture {
  * The "filenName" parameter is the related/absolute path of the file image.
  * Return true if the reloading is succeed, otherwise return false.
  */
-func (c *cache) reloadTexture(fileName string) bool {
+func (c *cache) ReloadTexture(file string) bool {
 
 }
 
-/** Purges the dictionary of loaded textures.
-* Call this method if you receive the "Memory Warning"
-* In the short term: it will free some resources preventing your app from being killed
-* In the medium term: it will allocate more resources
-* In the long term: it will be the same
- */
-func (c *cache) removeAllTextures() {
+/*
+ RemoveAllTextures Purges the map of loaded textures.
+ Call this method if you receive the "Memory Warning"
+ In the short term: it will free some resources preventing your app from being killed
+ In the medium term: it will allocate more resources
+ In the long term: it will be the same
+*/
+func (c *cache) RemoveAllTextures() {
+	c.locks.Lock()
+	c.textures = map[string]*Texture{}
+	c.locks.Unlock()
+}
 
+func (c *cache) run() {
+	for {
+		select {
+		case cb, ok := <-c.pendingTask:
+			{
+
+				if !ok {
+					return
+				}
+				cb()
+
+			}
+
+		default:
+			time.Sleep(1e9)
+		}
+
+	} // end of for {
 }
 
 /** Removes unused textures
@@ -169,46 +240,119 @@ func (c *cache) removeAllTextures() {
  * It is convenient to call this method after when starting a new Scene
  * @since v0.8
  */
-func (c *cache) removeUnusedTextures() {
+func (c *cache) RemoveUnusedTextures() {
 
 }
 
-/** Deletes a texture from the cache given a texture
- */
-func (c *cache) removeTexture(texture *Texture) {
-
-}
-
-/** Deletes a texture from the cache given a its key name
-  @since v0.99.4
+/*
+ RemoveTexture deletes a texture from the cache given a texture
 */
-func (c *cache) removeTextureForKey(key string) {
+func (c *cache) RemoveTexture(tex *Texture) {
+
+	var (
+		k string
+		v *Texture
+	)
+
+	c.locks.Lock()
+	defer c.locks.Unlock()
+
+	for k, v = range c.textures {
+		if v == tex {
+			delete(c.textures, k)
+			break
+		}
+	}
 
 }
 
-/** Output to CCLOG the current contents of this CCTextureCache
-* This will attempt to calculate the size of each texture, and the total texture memory in use
-*
-* @since v1.0
- */
-func (c *cache) dumpCachedTextureInfo() {
+/*
+RemoveTextureForKey deletes a texture from the cache given a its key name
+*/
+func (c *cache) RemoveTextureForKey(key string) {
+	c.locks.Lock()
+	defer c.locks.Unlock()
+
+	delete(c.textures, key)
+}
+
+/*
+ DumpCachedTextureInfo output to log the current contents of this CCTextureCache
+ This will attempt to calculate the size of each texture, and the total texture memory in use
+*/
+func (c *cache) DumpCachedTextureInfo() {
+
+	count := 0
+	totalBytes := 0
+
+	buf := &bytes.Buffer{}
+
+	for k, v := range c.textures {
+		bpp := v.BitsPerPixelForCurrentFormat()
+		bits := v.PixelsWide * v.PixelsHigh * bpp / 8
+		totalBytes += bits
+		count++
+
+		fmt.Fprintln(buf, "ChengDu:  \"%s\" id=%d %d x %d @ %d bpp => %d KB",
+			k,
+			v.Name,
+			v.PixelsWide,
+			v.PixelsHigh,
+			bpp,
+			bits/1024)
+	}
+
+	fmt.Fprintln(buf, "ChengDu: TextureCache dumpDebugInfo: %d textures, for %d KB (%.2f MB)", count, totalBytes/1024, float32(totalBytes)/(1024.0*1024.0))
+
+	log.Println(buf.String())
 
 }
 
-/** Returns a Texture2D object given an PVR filename
-* If the file image was not previously loaded, it will create a new CCTexture2D
-*  object and it will return it. Otherwise it will return a reference of a previously loaded image
- */
-func (c *cache) addPVRImage(filename string) {
+/*
+ AddPVRImage returns a Texture2D object given an PVR filename
+ If the file image was not previously loaded, it will create a new CCTexture2D
+  object and it will return it. Otherwise it will return a reference of a previously loaded image
+*/
+func (c *cache) AddPVRImage(filename string) *Texture {
+	var tex *Texture
+	tex = c.TextureForKey(filename)
+	if tex != nil {
+		return tex
+	}
+
+	abs := filename
+
+	tex = &Texture{}
+
+	if tex.initWithPVRFile(abs) {
+		return tex
+	}
+
+	return nil
 
 }
 
-/** Returns a Texture2D object given an ETC filename
- * If the file image was not previously loaded, it will create a new CCTexture2D
- *  object and it will return it. Otherwise it will return a reference of a previously loaded image
- *  @lua NA
- */
-func (c *cache) addETCImage(filename string) {
+/*
+ AddPVRImage returns a Texture2D object given an ETC filename
+  If the file image was not previously loaded, it will create a new CCTexture2D
+   object and it will return it. Otherwise it will return a reference of a previously loaded image
+*/
+func (c *cache) AddETCImage(filename string) {
+	var tex *Texture
+	tex = c.TextureForKey(filename)
+	if tex != nil {
+		return tex
+	}
+
+	abs := filename
+
+	tex = &Texture{}
+
+	if tex.initWithETCFile(abs) {
+		return tex
+	}
+
+	return nil
 
 }
 
